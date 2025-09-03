@@ -1,12 +1,9 @@
 moonshotai
 .aider*
-
 .claude/
-
 .idea/
-
 venv/
-
 moonshot/
-
 checkatron.egg-info/
+checkatron/__pycache__/
+tests/__pycache__/
