@@ -61,6 +61,135 @@ python -m checkatron.diffgen \
 
 See the `samples/` folder for example files and detailed usage instructions.
 
+## 🎯 Complete Tutorial: Test in Snowflake
+
+Want to test Checkatron with real Snowflake tables? Follow this step-by-step tutorial:
+
+### Step 1: Create Tables in Snowflake
+Copy and paste this into Snowflake:
+
+```sql
+-- Create the sample tables
+CREATE OR REPLACE TEMPORARY TABLE before_table (
+    ACCOUNT_ID NUMBER,
+    PORTFOLIO_NAME VARCHAR(50),
+    VALUATION_DATE DATE,
+    BALANCE NUMBER(15,2),
+    STATUS VARCHAR(20)
+);
+
+CREATE OR REPLACE TEMPORARY TABLE after_table (
+    ACCOUNT_ID NUMBER,
+    PORTFOLIO_NAME VARCHAR(50),
+    VALUATION_DATE DATE,
+    BALANCE NUMBER(15,2),
+    STATUS VARCHAR(20),
+    NEW_COLUMN NUMBER(10,2)
+);
+```
+
+### Step 2: Load Test Data
+Copy and paste this into Snowflake:
+
+```sql
+-- Load before table data
+INSERT INTO before_table VALUES
+    (1001, 'PORTFOLIO_A', '2024-01-01', 10000.00, 'ACTIVE'),
+    (1002, 'PORTFOLIO_B', '2024-01-01', 25000.50, 'ACTIVE'),
+    (1003, 'PORTFOLIO_A', '2024-01-01', 5000.75, 'SUSPENDED'),
+    (1004, 'PORTFOLIO_C', '2024-01-01', 15000.25, 'ACTIVE'),
+    (1005, 'PORTFOLIO_B', '2024-01-01', 30000.00, 'ACTIVE');
+
+-- Load after table data (with differences)
+INSERT INTO after_table VALUES
+    (1001, 'PORTFOLIO_A', '2024-01-01', 10000.00, 'ACTIVE', 100.00),
+    (1002, 'PORTFOLIO_B', '2024-01-01', 25000.50, 'ACTIVE', 200.00),
+    (1003, 'PORTFOLIO_A', '2024-01-01', 5000.75, 'ACTIVE', 150.00),
+    (1004, 'PORTFOLIO_C', '2024-01-01', 15000.25, 'ACTIVE', 300.00),
+    (1005, 'PORTFOLIO_B', '2024-01-01', 35000.00, 'ACTIVE', 400.00),
+    (1006, 'PORTFOLIO_D', '2024-01-01', 7500.00, 'ACTIVE', 500.00);
+```
+
+### Step 3: Verify the Data
+Copy and paste this into Snowflake:
+
+```sql
+-- Check row counts
+SELECT 'BEFORE TABLE' as table_name, COUNT(*) as row_count FROM before_table
+UNION ALL
+SELECT 'AFTER TABLE' as table_name, COUNT(*) as row_count FROM after_table;
+
+-- Show sample data
+SELECT 'BEFORE' as source, * FROM before_table ORDER BY ACCOUNT_ID
+UNION ALL
+SELECT 'AFTER' as source, * FROM after_table ORDER BY ACCOUNT_ID;
+```
+
+### Step 4: Export Table Schemas
+Now export the table schemas to create your CSV files:
+
+1. **Export before_table schema:**
+   ```sql
+   DESCRIBE TABLE before_table;
+   ```
+   - Click "Download" in Snowflake
+   - Save as `samples/example_before.csv`
+
+2. **Export after_table schema:**
+   ```sql
+   DESCRIBE TABLE after_table;
+   ```
+   - Click "Download" in Snowflake  
+   - Save as `samples/example_after.csv`
+
+3. **Create business keys file:**
+   - Copy `samples/example_before.csv`
+   - Remove all rows except ACCOUNT_ID, PORTFOLIO_NAME, VALUATION_DATE
+   - Save as `samples/example_keys.csv`
+
+### Step 5: Generate the Diff SQL
+Now use checkatron to generate the comparison SQL:
+
+```bash
+python -m checkatron.diffgen \
+    samples/example_before.csv \
+    samples/example_after.csv \
+    --keys samples/example_keys.csv \
+    --out samples/generated_diff.sql
+```
+
+### Step 6: Run the Generated Diff SQL
+Copy the contents of `samples/generated_diff.sql` and paste it into Snowflake.
+
+### Step 7: Analyze the Results
+Copy and paste this into Snowflake:
+
+```sql
+-- Summary of differences
+SELECT 
+    COUNT(*) as total_rows,
+    SUM(CASE WHEN _row_status = 0 THEN 1 ELSE 0 END) as matching_rows,
+    SUM(CASE WHEN _row_status > 0 THEN 1 ELSE 0 END) as different_rows,
+    SUM(CASE WHEN _row_status = 4 THEN 1 ELSE 0 END) as missing_in_before,
+    SUM(CASE WHEN _row_status = 5 THEN 1 ELSE 0 END) as missing_in_after
+FROM diff_result;
+
+-- Show rows with differences
+SELECT * FROM diff_result WHERE _row_status > 0;
+```
+
+### Expected Results:
+- **6 total rows** (5 from before + 1 new in after)
+- **2 rows with differences** (1003: status changed, 1005: balance changed)  
+- **1 new row** (1006: missing in before table)
+- **NEW_COLUMN** showing status 2 for all rows (NULL in before only)
+
+### Download for Excel Analysis:
+```sql
+SELECT * FROM diff_result;
+```
+Then click "Download" in Snowflake and filter on any column > 0 to see differences.
+
 ## Usage
 
 ### Basic Usage
