@@ -1,0 +1,79 @@
+--  diff table created by diffgen.py
+--  0 = match
+--  1 = both non-null but different
+--  2 = null in BEFORE only
+--  3 = null in AFTER  only
+--  4 = row missing in BEFORE
+--  5 = row missing in AFTER
+
+CREATE OR REPLACE TEMPORARY TABLE diff_result AS
+WITH
+before_filt AS (
+    SELECT * FROM {{ before_table }}
+    {% if before_where %}WHERE {{ before_where }}{% endif %}
+),
+after_filt AS (
+    SELECT * FROM {{ after_table }}
+    {% if after_where %}WHERE {{ after_where }}{% endif %}
+),
+-- all keys combinations that exist in either side
+all_keys AS (
+    SELECT
+    {% for k in key_cols %}
+        {{ k }}{% if not loop.last %},{% endif %}
+    {% endfor %}
+    FROM before_filt
+    UNION
+    SELECT
+    {% for k in key_cols %}
+        {{ k }}{% if not loop.last %},{% endif %}
+    {% endfor %}
+    FROM after_filt
+),
+joined AS (
+    SELECT
+        {% for k in key_cols %}
+        k.{{ k }}{% if not loop.last %},{% endif %}
+        {% endfor %},
+        {% for col in all_cols %}
+        {% if col in before_cols %}
+        b.{{ col }} AS b_{{ col }}{% if not loop.last %},{% endif %}
+        {% else %}
+        NULL AS b_{{ col }}{% if not loop.last %},{% endif %}
+        {% endif %}
+        {% endfor %},
+        {% for col in all_cols %}
+        {% if col in after_cols %}
+        a.{{ col }} AS a_{{ col }}{% if not loop.last %},{% endif %}
+        {% else %}
+        NULL AS a_{{ col }}{% if not loop.last %},{% endif %}
+        {% endif %}
+        {% endfor %}
+    FROM all_keys k
+    LEFT JOIN before_filt b
+      ON {% for k in key_cols -%}
+         (b.{{ k }} IS NULL AND k.{{ k }} IS NULL OR b.{{ k }} = k.{{ k }})
+         {% if not loop.last %}AND{% endif %}
+         {%- endfor %}
+    LEFT JOIN after_filt a
+      ON {% for k in key_cols -%}
+         (a.{{ k }} IS NULL AND k.{{ k }} IS NULL OR a.{{ k }} = k.{{ k }})
+         {% if not loop.last %}AND{% endif %}
+         {%- endfor %}
+)
+SELECT
+{% for col in all_cols %}
+    CASE
+        WHEN b_{{ col }} IS NULL AND a_{{ col }} IS NULL THEN 0
+        WHEN b_{{ col }} IS NULL AND a_{{ col }} IS NOT NULL THEN 2
+        WHEN b_{{ col }} IS NOT NULL AND a_{{ col }} IS NULL THEN 3
+        WHEN b_{{ col }} = a_{{ col }} THEN 0
+        ELSE 1
+    END AS {{ col }}{% if not loop.last %},{% endif %}
+{% endfor %},
+    CASE
+        WHEN b_{{ key_cols[0] }} IS NULL THEN 4
+        WHEN a_{{ key_cols[0] }} IS NULL THEN 5
+        ELSE 0
+    END AS _row_status
+FROM joined;

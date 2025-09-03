@@ -1,0 +1,6 @@
+name,type,kind,null?,default,primary key,unique key,check,expression,comment,policy name,privacy domain
+ACCOUNT_ID,NUMBER,,,,,,,,,,
+PORTFOLIO_NAME,VARCHAR,,,,,,,,,,
+VALUATION_DATE,DATE,,,,,,,,,,
+BALANCE,NUMBER,,,,,,,,,,
+STATUS,VARCHAR,,,,,,,,,,

@@ -1,0 +1,167 @@
+--  diff table created by diffgen.py
+--  0 = match
+--  1 = both non-null but different
+--  2 = null in BEFORE only
+--  3 = null in AFTER  only
+--  4 = row missing in BEFORE
+--  5 = row missing in AFTER
+
+CREATE OR REPLACE TEMPORARY TABLE diff_result AS
+WITH
+before_filt AS (
+    SELECT * FROM example.before
+    
+),
+after_filt AS (
+    SELECT * FROM example.after
+    
+),
+-- all keys combinations that exist in either side
+all_keys AS (
+    SELECT
+    
+        ACCOUNT_ID,
+    
+        PORTFOLIO_NAME,
+    
+        VALUATION_DATE
+    
+    FROM before_filt
+    UNION
+    SELECT
+    
+        ACCOUNT_ID,
+    
+        PORTFOLIO_NAME,
+    
+        VALUATION_DATE
+    
+    FROM after_filt
+),
+joined AS (
+    SELECT
+        
+        k.ACCOUNT_ID,
+        
+        k.PORTFOLIO_NAME,
+        
+        k.VALUATION_DATE
+        ,
+        
+        
+        b.ACCOUNT_ID AS b_ACCOUNT_ID,
+        
+        
+        
+        b.PORTFOLIO_NAME AS b_PORTFOLIO_NAME,
+        
+        
+        
+        b.VALUATION_DATE AS b_VALUATION_DATE,
+        
+        
+        
+        b.BALANCE AS b_BALANCE,
+        
+        
+        
+        b.STATUS AS b_STATUS,
+        
+        
+        
+        NULL AS b_NEW_COLUMN
+        
+        ,
+        
+        
+        a.ACCOUNT_ID AS a_ACCOUNT_ID,
+        
+        
+        
+        a.PORTFOLIO_NAME AS a_PORTFOLIO_NAME,
+        
+        
+        
+        a.VALUATION_DATE AS a_VALUATION_DATE,
+        
+        
+        
+        a.BALANCE AS a_BALANCE,
+        
+        
+        
+        a.STATUS AS a_STATUS,
+        
+        
+        
+        a.NEW_COLUMN AS a_NEW_COLUMN
+        
+        
+    FROM all_keys k
+    LEFT JOIN before_filt b
+      ON (b.ACCOUNT_ID IS NULL AND k.ACCOUNT_ID IS NULL OR b.ACCOUNT_ID = k.ACCOUNT_ID)
+         AND(b.PORTFOLIO_NAME IS NULL AND k.PORTFOLIO_NAME IS NULL OR b.PORTFOLIO_NAME = k.PORTFOLIO_NAME)
+         AND(b.VALUATION_DATE IS NULL AND k.VALUATION_DATE IS NULL OR b.VALUATION_DATE = k.VALUATION_DATE)
+         
+    LEFT JOIN after_filt a
+      ON (a.ACCOUNT_ID IS NULL AND k.ACCOUNT_ID IS NULL OR a.ACCOUNT_ID = k.ACCOUNT_ID)
+         AND(a.PORTFOLIO_NAME IS NULL AND k.PORTFOLIO_NAME IS NULL OR a.PORTFOLIO_NAME = k.PORTFOLIO_NAME)
+         AND(a.VALUATION_DATE IS NULL AND k.VALUATION_DATE IS NULL OR a.VALUATION_DATE = k.VALUATION_DATE)
+         
+)
+SELECT
+
+    CASE
+        WHEN b_ACCOUNT_ID IS NULL AND a_ACCOUNT_ID IS NULL THEN 0
+        WHEN b_ACCOUNT_ID IS NULL AND a_ACCOUNT_ID IS NOT NULL THEN 2
+        WHEN b_ACCOUNT_ID IS NOT NULL AND a_ACCOUNT_ID IS NULL THEN 3
+        WHEN b_ACCOUNT_ID = a_ACCOUNT_ID THEN 0
+        ELSE 1
+    END AS ACCOUNT_ID,
+
+    CASE
+        WHEN b_PORTFOLIO_NAME IS NULL AND a_PORTFOLIO_NAME IS NULL THEN 0
+        WHEN b_PORTFOLIO_NAME IS NULL AND a_PORTFOLIO_NAME IS NOT NULL THEN 2
+        WHEN b_PORTFOLIO_NAME IS NOT NULL AND a_PORTFOLIO_NAME IS NULL THEN 3
+        WHEN b_PORTFOLIO_NAME = a_PORTFOLIO_NAME THEN 0
+        ELSE 1
+    END AS PORTFOLIO_NAME,
+
+    CASE
+        WHEN b_VALUATION_DATE IS NULL AND a_VALUATION_DATE IS NULL THEN 0
+        WHEN b_VALUATION_DATE IS NULL AND a_VALUATION_DATE IS NOT NULL THEN 2
+        WHEN b_VALUATION_DATE IS NOT NULL AND a_VALUATION_DATE IS NULL THEN 3
+        WHEN b_VALUATION_DATE = a_VALUATION_DATE THEN 0
+        ELSE 1
+    END AS VALUATION_DATE,
+
+    CASE
+        WHEN b_BALANCE IS NULL AND a_BALANCE IS NULL THEN 0
+        WHEN b_BALANCE IS NULL AND a_BALANCE IS NOT NULL THEN 2
+        WHEN b_BALANCE IS NOT NULL AND a_BALANCE IS NULL THEN 3
+        WHEN b_BALANCE = a_BALANCE THEN 0
+        ELSE 1
+    END AS BALANCE,
+
+    CASE
+        WHEN b_STATUS IS NULL AND a_STATUS IS NULL THEN 0
+        WHEN b_STATUS IS NULL AND a_STATUS IS NOT NULL THEN 2
+        WHEN b_STATUS IS NOT NULL AND a_STATUS IS NULL THEN 3
+        WHEN b_STATUS = a_STATUS THEN 0
+        ELSE 1
+    END AS STATUS,
+
+    CASE
+        WHEN b_NEW_COLUMN IS NULL AND a_NEW_COLUMN IS NULL THEN 0
+        WHEN b_NEW_COLUMN IS NULL AND a_NEW_COLUMN IS NOT NULL THEN 2
+        WHEN b_NEW_COLUMN IS NOT NULL AND a_NEW_COLUMN IS NULL THEN 3
+        WHEN b_NEW_COLUMN = a_NEW_COLUMN THEN 0
+        ELSE 1
+    END AS NEW_COLUMN
+,
+    CASE
+        WHEN b_ACCOUNT_ID IS NULL THEN 4
+        WHEN a_ACCOUNT_ID IS NULL THEN 5
+        ELSE 0
+    END AS _row_status
+FROM joined;

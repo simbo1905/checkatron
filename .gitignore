@@ -1,2 +1,12 @@
 moonshotai
 .aider*
+
+.claude/
+
+.idea/
+
+venv/
+
+moonshot/
+
+checkatron.egg-info/

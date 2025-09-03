@@ -1,3 +1,11 @@
+
+<ENVIRONMENT>
+- Check for python 3
+- Install the venv and use it with    
+   python -m venv venv && source venv/bin/activate && pip install -r requirements.txt
+</ENVIRONMENT>
+
+<PROJECT_INITIAL_IDEA>
 hey, i want to write some python will generate sql that will check two database tables, or two different data sets within the same table, by doing a brute force comparison of every row and column in the two selections, to generate booleans of match/not-matched that can be used to create a temporary table of booleans on the snowflake web ui so that a business analyst can then download the results to their owrkstation and use excel to filter columns looking for mismatches. we use snowflake so this will be ANSI sql, the tables are insert only. we insert into them using an ANSI MERGE that has the "ON" statement know the business keys, and it does null safe comparisons and on NOT MATCH it does an insert. so we know the business keys. now we may have a production table and a test table where the columns are different. yet the business analyst will know which column should or should not have differences or be absent in one or other table. so we may want to use NULL as meaning one or other of the selections is not present in another table. to generate the sql the analyst will run "describe table xxx" in the snowflake UI and save to their laptop as CSV. it its the same table (comparing two dates in the same table) they can pass that cvs as both the "before" and "after" schema. if there are two databases and the columns are different they would create two csv files and pass the two files as the first and second positional to the python script. with no other parameters it would be a full table comparison. in which case the script needs to be told what are the common business keys. these must match between the tables. to so this the business analyst can copy on of the two describe css files and remove the columns that are not part of the business keys. we should use argparse in our python script and they should set a mandatory option `--keys XXX.csv` with this option. at that point we have the minimum import to do a brute force compare of two tables on the merge keys. we can use Jinja2 to make the sql. we can have a j2 macro that makes the join query logic between the two tables on the keys. we do this in a format of checking each key in a null safe way. if both key columns are where we do
 ``
 JOIN ON 1=1
@@ -40,3 +48,4 @@ this is mainly about the templates.
 seems like fun. go for it!
 
 yes that makes more sense, in which case the j2 macro to write out the CASE statement can be more sophisticated. it does not change our software only the j2 macro you put in. then you can have tests that test between two tables all of those scenarios. the analyst will download the temp table as a csv of numbers can filter them to find what is missing etc. 
+</PROJECT_INITIAL_IDEA>
