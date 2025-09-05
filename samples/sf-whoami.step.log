@@ -1,0 +1,28 @@
++ CONFIG=/Users/Shared/checkatron/samples/snowsql-demo.config
++ '[' -f /Users/Shared/checkatron/samples/../rsa_key_encrypted.p8 ']'
++ '[' -f /Users/Shared/checkatron/samples/../rsa_key.pem ']'
++ CONN=demo_key
++ command -v snowsql
++ SNOWSQL=snowsql
++ echo '== Step 1: Version =='
+== Step 1: Version ==
++ timeout 15 snowsql -v
++ perl -e 'alarm shift @ARGV; exec @ARGV' 15 snowsql -v
+Version: 1.2.32
++ echo '== Step 2: Show config & connection =='
+== Step 2: Show config & connection ==
++ ls -l /Users/Shared/checkatron/samples/snowsql-demo.config
+-rw-r--r--@ 1 consensussolutions  wheel  709  4 Sep 16:37 /Users/Shared/checkatron/samples/snowsql-demo.config
++ echo 'Using connection: demo_key'
+Using connection: demo_key
++ echo '== Step 3: Query session context =='
+== Step 3: Query session context ==
++ timeout 70 snowsql --config /Users/Shared/checkatron/samples/snowsql-demo.config -c demo_key -o output_format=csv -o header=true -o friendly=false -o log_level=ERROR -q 'select current_warehouse(), current_database(), current_schema(), current_role();'
++ perl -e 'alarm shift @ARGV; exec @ARGV' 70 snowsql --config /Users/Shared/checkatron/samples/snowsql-demo.config -c demo_key -o output_format=csv -o header=true -o friendly=false -o log_level=ERROR -q 'select current_warehouse(), current_database(), current_schema(), current_role();'
+251006 (n/a): Password is empty
+If the error message is unclear, enable logging using -o log_level=DEBUG and see the log to find out the cause. Contact support for further help.
++ true
++ echo '== END SUMMARY =='
+== END SUMMARY ==
++ echo 'Log saved to: /Users/Shared/checkatron/samples/sf-whoami.step.log'
+Log saved to: /Users/Shared/checkatron/samples/sf-whoami.step.log

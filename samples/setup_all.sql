@@ -9,7 +9,7 @@
 -- =====================================================
 
 -- Before table (original schema)
-CREATE OR REPLACE TEMPORARY TABLE before_table (
+CREATE OR REPLACE TABLE before_table (
     ACCOUNT_ID NUMBER,
     PORTFOLIO_NAME VARCHAR(50),
     VALUATION_DATE DATE,
@@ -18,7 +18,7 @@ CREATE OR REPLACE TEMPORARY TABLE before_table (
 );
 
 -- After table (new schema with extra column)
-CREATE OR REPLACE TEMPORARY TABLE after_table (
+CREATE OR REPLACE TABLE after_table (
     ACCOUNT_ID NUMBER,
     PORTFOLIO_NAME VARCHAR(50),
     VALUATION_DATE DATE,

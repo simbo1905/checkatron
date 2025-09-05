@@ -70,7 +70,7 @@ Copy and paste this into Snowflake:
 
 ```sql
 -- Create the sample tables
-CREATE OR REPLACE TEMPORARY TABLE before_table (
+CREATE OR REPLACE TABLE before_table (
     ACCOUNT_ID NUMBER,
     PORTFOLIO_NAME VARCHAR(50),
     VALUATION_DATE DATE,
@@ -78,7 +78,7 @@ CREATE OR REPLACE TEMPORARY TABLE before_table (
     STATUS VARCHAR(20)
 );
 
-CREATE OR REPLACE TEMPORARY TABLE after_table (
+CREATE OR REPLACE TABLE after_table (
     ACCOUNT_ID NUMBER,
     PORTFOLIO_NAME VARCHAR(50),
     VALUATION_DATE DATE,

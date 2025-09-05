@@ -1,0 +1,7 @@
+----- 2025-09-04T21:41:27Z
+SQL: -- Example stack of SnowSQL steps (one statement per line)
+* SnowSQL * v1.2.32
+Type SQL statements or !help
+-- Example stack of SnowSQL steps (one statement per line)
+Goodbye!
+RESULT: SUCCESS

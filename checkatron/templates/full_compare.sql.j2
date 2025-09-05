@@ -1,12 +1,14 @@
---  diff table created by diffgen.py
---  0 = match
---  1 = both non-null but different
---  2 = null in BEFORE only
---  3 = null in AFTER  only
---  4 = row missing in BEFORE
---  5 = row missing in AFTER
+/*
+  diff table created by diffgen.py
+  0 = match
+  1 = both non-null but different
+  2 = null in BEFORE only
+  3 = null in AFTER  only
+  4 = row missing in BEFORE
+  5 = row missing in AFTER
+*/
 
-CREATE OR REPLACE TEMPORARY TABLE diff_result AS
+CREATE OR REPLACE TABLE diff_result AS
 WITH
 before_filt AS (
     SELECT * FROM {{ before_table }}
@@ -16,7 +18,7 @@ after_filt AS (
     SELECT * FROM {{ after_table }}
     {% if after_where %}WHERE {{ after_where }}{% endif %}
 ),
--- all keys combinations that exist in either side
+/* all keys combinations that exist in either side */
 all_keys AS (
     SELECT
     {% for k in key_cols %}

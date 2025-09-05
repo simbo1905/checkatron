@@ -1,0 +1,19 @@
+> Acknowledged. Resetting stack, using the tool (not awk), and running the approved batch runner to completion. Evidence only.
+
+  - Reset + append via tool
+  time timeout 60 venv/bin/python -m checkatron.diffgen samples/example_before.csv samples/example_after.csv --keys samples/example_keys.csv --before_table
+  before_table --after_table after_table --out artifacts/generated_diff.sql --single_line --stack_input script.steps.sql.input
+  time timeout 60 venv/bin/python -m checkatron.diffgen samples/example_before.csv samples/example_after.csv --keys samples/example_keys.csv --before_table
+  before_table --after_table after_table --out artifacts/generated_diff.sql --single_line --stack_input script.steps.sql.input
+  -
+  Run steps (repeat same command)
+  time timeout 60 ./run-sql-steps.sh
+  time timeout 60 ./run-sql-steps.sh
+  time timeout 60 ./run-sql-steps.sh
+  time timeout 60 ./run-sql-steps.sh
+  time timeout 60 ./run-sql-steps.sh
+  time timeout 60 ./run-sql-steps.sh
+  time timeout 60 ./run-sql-steps.sh
+  time timeout 60 ./run-sql-steps.sh
+  -
+  Evidence: script.steps.sql.output contains all SnowSQL outputs, including diff_result creation, summary, diffs, and cleanup.

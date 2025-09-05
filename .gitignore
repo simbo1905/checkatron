@@ -7,3 +7,9 @@ moonshot/
 checkatron.egg-info/
 checkatron/__pycache__/
 tests/__pycache__/
+WISDOM.md
+demo/
+rsa_key.pem
+rsa_key.pub
+
+.vscode/

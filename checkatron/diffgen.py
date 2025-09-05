@@ -59,6 +59,10 @@ def parse_args(argv: List[str]) -> argparse.Namespace:
     p.add_argument("--after_table",  help="Override DB.SCHEMA.TABLE (after)")
     p.add_argument("--out", type=Path, default=Path("diff.sql"),
                    help="Output SQL file")
+    p.add_argument("--single_line", action="store_true",
+                   help="Emit SQL as a single line (remove -- comments; collapse whitespace)")
+    p.add_argument("--stack_input", type=Path,
+                   help="If set, prepend the single-line SQL to this stack file (one statement per line)")
     return p.parse_args(argv)
 
 
@@ -111,8 +115,29 @@ def main():
     """Main entry point for the console script."""
     ns = parse_args(sys.argv[1:])
     sql = build_sql(ns)
+
+    # Optionally convert to single line for batching
+    single = sql
+    if ns.single_line:
+        # Drop lines starting with -- and collapse all whitespace to single spaces
+        lines = []
+        for line in single.splitlines():
+            stripped = line.lstrip()
+            if stripped.startswith("--"):
+                continue
+            lines.append(line)
+        single = " ".join(" ".join(lines).split())
+
+    # Write normal output file
     ns.out.write_text(sql)
     print(f"SQL written to {ns.out}")
+
+    # Optionally append to a stack file (one statement per line)
+    if ns.stack_input and ns.single_line:
+        stack_path = ns.stack_input
+        with stack_path.open("a", encoding="utf-8") as f:
+            f.write(single.rstrip() + "\n")
+        print(f"Appended single-line SQL to {stack_path}")
 
 
 if __name__ == "__main__":

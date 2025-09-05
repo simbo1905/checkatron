@@ -1,51 +1,179 @@
+---
+title: Agents Guide
+description: Durable guidance for engineers and AI coding agents working in this repository.
+---
 
-<ENVIRONMENT>
-- Check for python 3
-- Install the venv and use it with    
-   python -m venv venv && source venv/bin/activate && pip install -r requirements.txt
-</ENVIRONMENT>
+# Agents Guide
 
-<PROJECT_INITIAL_IDEA>
-hey, i want to write some python will generate sql that will check two database tables, or two different data sets within the same table, by doing a brute force comparison of every row and column in the two selections, to generate booleans of match/not-matched that can be used to create a temporary table of booleans on the snowflake web ui so that a business analyst can then download the results to their owrkstation and use excel to filter columns looking for mismatches. we use snowflake so this will be ANSI sql, the tables are insert only. we insert into them using an ANSI MERGE that has the "ON" statement know the business keys, and it does null safe comparisons and on NOT MATCH it does an insert. so we know the business keys. now we may have a production table and a test table where the columns are different. yet the business analyst will know which column should or should not have differences or be absent in one or other table. so we may want to use NULL as meaning one or other of the selections is not present in another table. to generate the sql the analyst will run "describe table xxx" in the snowflake UI and save to their laptop as CSV. it its the same table (comparing two dates in the same table) they can pass that cvs as both the "before" and "after" schema. if there are two databases and the columns are different they would create two csv files and pass the two files as the first and second positional to the python script. with no other parameters it would be a full table comparison. in which case the script needs to be told what are the common business keys. these must match between the tables. to so this the business analyst can copy on of the two describe css files and remove the columns that are not part of the business keys. we should use argparse in our python script and they should set a mandatory option `--keys XXX.csv` with this option. at that point we have the minimum import to do a brute force compare of two tables on the merge keys. we can use Jinja2 to make the sql. we can have a j2 macro that makes the join query logic between the two tables on the keys. we do this in a format of checking each key in a null safe way. if both key columns are where we do
-``
-JOIN ON 1=1
-AND ( ( before.X IS NULL AND after.X IS NULL ) OR before.X == after X )
-...
-```
-so that can be a j2 macro in the template. so the py will have to read the past keys files, pull out the column names, and invoke the macro. the `describe table BEFORE;` csv output looks like:
-```
-name,type,kind,null?,default, primary key,unique key, check,expression,comment,policy name, privacy domain
-```
-so there will be a head then the first column are the join keys. 
-we then need to check are there missing/different columns on the two tables? if so that will be a null column in the boolean temp table. now we normally only add columns to the end of a table so we do not need to sort the order. yet we may also remove. so for the in order union of the two table columns we need to generate into the j2 template the comparison of each column such as:
-```
-CASE
-    WHEN( ( before.Z IS NULL AND after.Z IS NOT NULL ) OR before.Z = after.Z  ) TRUE
-    ELSE FALSE
-END AS Z,
-... 
-```
-that can also be a j2 macro. 
-so then the actual main sql in the template will be something like:
-```
-CREATE OR REPLACE TEMPORARY TABLE {{table_name}}_DIFF
-AS SELECT
-// use marco to dump out the case statements
-FROM $before_schema.$before_table
-JOIN $after_schema.$after_table
-ON 1=1
-// join macro
+This document helps humans and AI agents explore, run, test, and evolve the project without depending on brittle, fast‑changing details. For user‑facing features, commands, and the most up‑to‑date options, always consult `README.md` (source of truth).
+
+## Overview
+
+- Purpose: generate ANSI/Snowflake‑friendly SQL that compares two datasets and surfaces column‑wise differences and row presence/absence.
+- Approach: small Python codepath renders Jinja2 SQL templates; tests validate behavior via DuckDB.
+- Audience: data engineers, developers, and AI agents contributing changes.
+
+## Source Of Truth
+
+- User docs and examples: see `README.md`.
+- Contributor norms and workflows: this guide.
+- Template semantics: tests pin intended behavior; update tests alongside template changes.
+
+## Codebase Shape (Stable Mental Model)
+
+Treat names as illustrative—expect these areas, even if exact filenames evolve:
+
+- Core Python: loads schema CSVs, reads key columns, and renders SQL via Jinja2.
+- Templates: Jinja2 SQL defining null‑safe joins on business keys and per‑column status outputs.
+- Samples: example schema CSVs and a simple driver script to generate demo SQL.
+- Tests: pytest suite using DuckDB to exercise template logic and assert outcomes.
+- Packaging/Config: standard Python packaging with editable installs for local dev and CI.
+
+## Runbook
+
+Local setup (example; adjust to your environment):
+
+```bash
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+pip install -e .
 ```
 
-now note the tables may have the same name in the different schemes, or be the same table when we add more to the script to all to select data sets by dates to compare from one table, so we can use the name of the two schema file for this. so I might name one file PUBLISHED_FBOR.PORTFOLIOS.csv then that is the schema and name. then the other file i may name SANDBOX_FBOR.PORTFOLIOS_LANDING.csv and i will pass those in at positions 1 and 2 of the script then that indicates that the schema.name to use for the "before" table is SANDBOX_FBOR.PORTFOLIOS_LANDING and the "after" table is SANDBOX_FBOR.PORTFOLIOS_LANDING yet some optional parameters can be added to overwrite the DB.SCHEMA.TABLE of each of the before and after tables. 
-so the final part of the puzzle is that rather than a full comparison of tables as they are two years old so huge data sets the data analyst would like to pass in a where filter for both tables or the same filter for different tables. this is soft the data partition / cluster key HEADER_VALUATION_DATE so often i want to filter both tables with `AND before. HEADER_VALUATION_DATE = datediff( day, -1, CURRENT_DATE) AND after. HEADER_VALUATION_DATE   = datediff( day, -1, CURRENT_DATE)` yet i might be that i want to use the same table for a self join so i might select two different days. we also have HEADER_ACCOUNT_NUMBER and if that is past then it must match in the two tables. that would be something like `AND before. HEADER_ACCOUNT_NUMBER in ( ?,?,? ) AND  after.HEADER_ACCOUNT_NUMBER in (?,?,?)` so for that i am not sure how to generalise it. the developers usually have windows and git bash MSYS or WSL so can do a heredoc yet the analysts often are not so sure. whoever runs this they are usually gonna have pycharm ce so it may be a dev who runs it and emails the sql to the data analyst i am thinking maybe the joins can be j2 snippets and there could be a way to specific the "IN_LIST_JOIN_ACCOUNTS.j2" for the accounting join and maybe a DATE_FILTER_DATE_OFFSET.j2 for the prior day thing or FIXED_DATES.j2 or such. so a sort of simply plugin way of doing this with flags and includes. please use these as hints i have not thought about it and i think you may be able to make something elegant and expressive for this. it may be far two many parameter to do it as cli so maybe make an optional config.toml file that can have a documented way of defining the setting to compose the templates. i am thinking the config.toml defines the shape/macros/snippets that are including into the j2 template system. the actual values passed in are passed as arbitrary parameters...? can argspase do that or would it break it? for to look at each 
-`--____ '____'`,  `--____ '____', ...
-coming after the positional args as "its a variable name and a string that is the variable. then in the config.toml it can say "variable named valuation_date is an iso date" so it would pull out `--valuation_date '2025-09-01'` to know that is the variable "valuation_date" that is to be used in some snippet that has been said to be included into the templates. I do not know how to do this well. i am guessing that it is possible. the other one would be `--accounts '123,567,788'` meaning a list of accounts that will need to be rendered up in to an `AND ACCOUNT_NUMBER IN ( '123', '567', '788' )` as quoting strings is hard on the commmandline and the python should look at the table column defs to know it is if ACCOUNT_NUMBER is VARCHAR/STRING so needs quotes or if it NUMBER/INTEGER so no need for quotes. 
-okay buddy; one short me that, as py, templates files, and a python unit tests, and a requirements.txt and the commands setup the venv or poetry config in an empty GitHub repo. good luck! the idea is that i will do this in an empty GitHub repo then try to debug it with you. just give me all the artefacts and test cases. do the simple before the hard. so do full table compares first. 
-oh! i can use duckdb for testing! there are minor differences but as long as we use ANSI SQL we are fine. sometimes had to set a duckdb macro to emulate a snowflake function but that was easy. so i want to have python unit tests that will create in memory database tables in duckdb with different columns types, keep it simple to dates, timestamps, strings, booleans, whole numbers and decimals. so you can make tests where given two simple three column tables, no PKs, load data, then have tests that try to join on one column, or on two columns. 
-note we need to tell the user about missing rows as well as missing columns. you know maybe boolean columns, that can have null|true|false is too low-fi perhaps it can be a small number column then it can have 0,1,2,3,.. where 0 is match, 1 is different, 2 is null before but not after, 3, is before but null after, 4 can be missing before table but present in after, 5 is the other way around. oh i am not exactly sure as sometimes the row/column is in both tables, but other times the column is in both tables but based on the business key there is no match. so it should not be inner joins, rather there can be a CTE structure, the first two CTEs are the filtered before and after, then there can be a CTE with inner join on keys that does compare, then a CTE that is left join on null, then a CTE that is right join on null, or whatever so tat the end, it can union things to show all the stuff that could be compared as well as rows in one side not in the other and vis-versa. 
-this is mainly about the templates. 
-seems like fun. go for it!
+Generate SQL and run examples: see `README.md` for current commands and flags.
 
-yes that makes more sense, in which case the j2 macro to write out the CASE statement can be more sophisticated. it does not change our software only the j2 macro you put in. then you can have tests that test between two tables all of those scenarios. the analyst will download the temp table as a csv of numbers can filter them to find what is missing etc. 
-</PROJECT_INITIAL_IDEA>
+## Testing
+
+- Runner: `pytest`
+- DB: DuckDB in‑memory for fast verification
+- Typical invocations:
+  - `python -m pytest -q`
+  - Filter to a single test when iterating on templates
+- Testing ethos: keep cases small and table‑driven; cover null‑safety, differing schemas, and row presence/absence.
+
+## Conventions
+
+- Inputs: CSVs produced by a DESCRIBE‑TABLE‑style command; a separate CSV lists the business key columns.
+- Joins: null‑safe equality across the key set to pair rows between datasets.
+- Diff output: per‑column status codes and a row‑level presence indicator (machine‑filterable). Exact meanings live in tests/README.
+- Templating: prefer Jinja2 macros/CTEs over embedding SQL in Python; evolve templates with tests.
+- Types: infer only what is required for safe rendering/quoting; keep SQL ANSI‑friendly.
+
+## Common Tasks
+
+- Explore: locate the SQL builder and templates; use your preferred code search.
+- Evolve templates: add macros/CTEs to support new comparison needs; update tests accordingly.
+- Extend CLI: introduce options judiciously and keep sensible defaults; document in `README.md`.
+- Add tests: build minimal DuckDB tables/rows and assert status outcomes for mismatches, nulls, and missing rows.
+
+## Change Safety
+
+- Update or add tests when changing template logic or output semantics.
+- Keep backward‑compatible defaults when adding flags.
+- Avoid hard‑coding filenames/paths in this guide; keep guidance role‑based, not file‑based.
+
+## Troubleshooting
+
+- Imports fail: ensure your virtual environment is active and the package is installed in editable mode.
+- Template not found: verify runtime resolves templates relative to the package/module, not the current working directory.
+- Missing dependencies: install requirements and dev tools before running tests.
+
+## Tooling Neutrality
+
+This repo does not mandate specific editors, agents, or external servers. Use whatever tooling helps you navigate and contribute. Any code‑pack, search, or analysis helpers are optional.
+
+## Contact & Changes
+
+- Start with `README.md` for user workflows.
+- Open an issue/PR to propose semantic changes (e.g., status conventions, new filters, dialect support).
+
+## SnowSQL Diagnostics Probe (Disposable)
+
+Purpose: fact‑finding only. Fast, safe, no changes. Time‑limited per step. Writes a single log and prints a clear findings summary.
+
+- Run checked‑in probe (preferred):
+  - `python diagnostics/snowsql_probe.py --timeout 3 --log diagnostics/snowsql_probe.log`
+  - Reads PATH, resolves `snowsql`, inspects typical locations, checks `~/.snowsql` readability, attempts `snowsql -v`, and a short query (may time out). Summarizes findings at the bottom of the log.
+
+- Disposable heredoc (no files left behind):
+  - If you can't access repo files, you can inline a minimal probe:
+    ```bash
+    python - <<'PY'
+import os, shutil, subprocess, sys, time, datetime as dt
+def run(cmd, t=3):
+    print(f"$ {' '.join(cmd)} (timeout={t}s)")
+    try:
+        p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=t)
+        print(p.stdout, end=''); print(p.stderr, end=''); print(f"rc={p.returncode}")
+        return p.returncode, p.stdout, p.stderr, False
+    except subprocess.TimeoutExpired:
+        print(f"TIMEOUT after {t}s"); return 124, '', '', True
+exe = shutil.which('snowsql'); print('PATH=', os.environ.get('PATH',''))
+print('snowsql=', exe)
+findings=[]
+if exe:
+  rc, out, _, to = run([exe, '-v'])
+  findings.append('version ok' if rc==0 and not to else 'version check failed/timed out')
+  rc, out, _, to = run([exe, '-o','friendly=false','-o','timing=false','-o','output_format=csv','-q','select current_timestamp();'])
+  findings.append('connect/query ok' if rc==0 and not to else 'connect/query failed or timed out (expected if not configured)')
+else:
+  findings.append('snowsql not found on PATH')
+print('\n=== FINDINGS SUMMARY ===')
+for f in findings: print('-', f)
+print('=== END ===')
+PY
+    ```
+
+Crash‑resilience principles
+- Add before remove: prefer additive diagnostics and keep prior commands until the new path is proven.
+- Short timeouts: default 3s per external call to avoid agent stalls.
+- Single log file: print as you go and summarize findings explicitly at the end.
+- No fixes in probes: separate fact‑finding from remediation; open an issue/PR for changes.
+
+## Step Ledger Runner (Idempotent Validation)
+
+Purpose: run validation flows in discrete, resumable steps. Each completed step writes a sentinel file under `artifacts/ledger/NN_name.ok`. Re‑running resumes at the next missing step. No deletes before adds.
+
+- Run locally (no Snowflake):
+  - `make local`  (equivalent: `python tools/step_ledger.py --plan local`)
+  - Steps: pytest → generate sample diff SQL → sanity check SQL tokens.
+
+- Run against Snowflake (requires snowsql + creds):
+  - `make snowflake`  (equivalent: `python tools/step_ledger.py --plan snowflake`)
+  - Steps: probe → setup TEMP tables → load data → DESCRIBE to CSV → generate → execute → validate summary.
+  - Uses `SNOWSQL_PROFILE` if set; otherwise relies on your default snowsql config.
+
+- Reset the ledger safely (archive, do not delete):
+  - `make reset-ledger`  (equivalent: `python tools/step_ledger.py --reset`)
+  - Archives `artifacts/ledger` to `artifacts/ledger.<timestamp>.bak`.
+
+Design guarantees
+- Idempotence: steps are safe to re‑run; completed steps are skipped via sentinels.
+- Single log: `artifacts/step_ledger.log` captures command output and outcomes.
+- Add‑before‑remove: runner never deletes prior state as part of step completion.
+
+## SnowSQL Run Convention (Fast, Evidenced)
+
+- Always run direct commands (no wrapper scripts) with a hard timeout and timing:
+  - `time timeout 90 "/Applications/SnowSQL.app/Contents/MacOS/snowsql" --config demo/snowsql-demo.config -c my_example_connection -q "...;"`
+- If a command times out, manually retry with a higher timeout up to 300s.
+- Present raw command + raw output as the evidence; no narration.
+
+## Approval-Friendly Execution
+
+- Prefer reusing the same command form across steps (only SQL changes), or use the pre‑approved batch runner `./run-sql-steps.sh` that reads the next SQL from a file.
+- Avoid one-off, unique shell lines that trigger repeated approvals; keep the shell command stable and feed it different inputs.
+
+Batch Runner
+- Runner: `./run-sql-steps.sh`
+- Input stack (one SQL per line): `script.steps.sql.input`
+- Output log (append‑only): `script.steps.sql.output`
+- Example (repeat until stack empty):
+  - `time timeout 60 ./run-sql-steps.sh`
+- Reset stack from template:
+  - `cp script.steps.sql.input.example script.steps.sql.input`
+
+## SQL Commenting Rule (Batchable)
+
+- Do not use `--` comments in SQL that will be flattened to one line (they will comment out the remainder).
+- Prefer `/* ... */` block comments in Jinja2 templates and samples so the SQL remains valid when collapsed to a single line.

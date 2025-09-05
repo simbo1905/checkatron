@@ -57,7 +57,7 @@ python -m checkatron.diffgen \
 
 ## 📊 Understanding the Output
 
-The generated SQL will create a temporary table called `diff_result` with status codes for each column:
+The generated SQL will create a table called `diff_result` with status codes for each column:
 
 - **0**: Values match between tables
 - **1**: Values are different between tables
