@@ -36,7 +36,7 @@ all_keys AS (
 joined AS (
     SELECT
         {% for k in key_cols %}
-        k.{{ k }}{%- if not loop.last %},{%- endif %}
+        k.{{ k }} AS K_{{ k }} {%- if not loop.last %},{%- endif %}
         {%- endfor %},
         {%- for col in all_cols %}
         {%- if col in before_cols %}
@@ -65,8 +65,13 @@ joined AS (
          {%- endfor %}
 )
 SELECT
+    CASE
+        WHEN b_{{ key_cols[0] }} IS NULL THEN 4
+        WHEN a_{{ key_cols[0] }} IS NULL THEN 5
+        ELSE 0
+    END AS _row_status,
 {% for k in key_cols -%}
-    a_{{ k }} AS X_{{ k }},
+    K_{{ k }},
 {%- endfor %}
 
 {% for col in all_cols -%}
@@ -77,10 +82,5 @@ SELECT
         WHEN b_{{ col }} = a_{{ col }} THEN 0
         ELSE 1
     END AS {{ col }}{% if not loop.last %},{% endif %}
-{% endfor %},
-    CASE
-        WHEN b_{{ key_cols[0] }} IS NULL THEN 4
-        WHEN a_{{ key_cols[0] }} IS NULL THEN 5
-        ELSE 0
-    END AS _row_status
+{% endfor %}
 FROM joined;

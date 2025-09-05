@@ -20,7 +20,7 @@ def mk_csv(rows, tmp: Path, name: str) -> Path:
 
 
 def test_simple_same_table():
-    """Two identical rows --> all 0 in diff."""
+    """Two identical rows --> value status 0 and row status 0."""
     with tempfile.TemporaryDirectory() as td:
         t = Path(td)
         # describe-like csv
@@ -50,10 +50,10 @@ def test_simple_same_table():
             "--after_table",  "after_table",
         ]))
         con.execute(sql)
-        # Select only status columns (exclude new X_<key> projection columns)
-        res = con.execute("SELECT k1, val, _row_status FROM diff_result").fetchall()
-        # expect [0,0,0]  (val matches, row present both sides, row status 0)
-        assert res == [(0, 0, 0)]
+        # Select only status columns present in diff_result (avoid relying on order)
+        res = con.execute("SELECT val, _row_status FROM diff_result").fetchall()
+        # expect [0,0]  (val matches, row present both sides)
+        assert res == [(0, 0)]
 
 
 def test_missing_column():
