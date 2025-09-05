@@ -20,7 +20,7 @@ def mk_csv(rows, tmp: Path, name: str) -> Path:
 
 
 def test_simple_same_table():
-    """Two identical rows --> value status 0 and row status 0."""
+    """Two identical rows --> all 0 in diff."""
     with tempfile.TemporaryDirectory() as td:
         t = Path(td)
         # describe-like csv

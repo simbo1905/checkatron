@@ -1,6 +1,21 @@
 # Checkatron
 
-A Python tool for generating brute-force SQL diff scripts to compare two database tables or datasets. Perfect for data validation, migration testing, and ensuring data consistency between production and test environments.
+A template driven Python tool for generating brute-force SQL diff scripts to compare two different database tables or datasets in the same table. 
+Perfect for data validation, migration testing, and ensuring data consistency between production and test environments.
+
+The generated SQL is compatible with Snowflake and ANSI SQL databases and can be configured to use complex join keys with null-safe comparisons.
+The result can be TABLE (or TEMP TABLE) with status codes for each column and row-level differences:
+
+- **0**: ✅ Values match as same row are in each table and are either both null or equal
+- **1**: Values are different and not null in both tables
+- **2**: Column is NULL in before table only
+- **3**: Column is NULL in after table only
+- **4**: Row missing in before table (only shown as the `_row_status` magic column)
+- **5**: Row missing in after table (only shown as the `_row_status` magic column)
+
+The tool was built to help regression test data loading pipelines that insert only now rows. 
+
+In production environment you can modify the template to create a temp table on the snowflake web UI then download the results to Excel and filter on any column > 0 to see the differences.
 
 ## Features
 
@@ -30,8 +45,6 @@ pip install -e .
 ```
 
 **💡 Pro Tip**: In VSCode, you can click on any of these commands to run them directly in your terminal!
-
-
 
 ## Quick Start
 
