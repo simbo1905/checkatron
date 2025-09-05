@@ -20,7 +20,7 @@ def mk_csv(rows, tmp: Path, name: str) -> Path:
 
 
 def test_simple_same_table():
-    """Two identical rows --> all 0 in diff."""
+    """Two identical rows: per-column status 0; _row_status is NULL."""
     with tempfile.TemporaryDirectory() as td:
         t = Path(td)
         # describe-like csv
@@ -52,8 +52,8 @@ def test_simple_same_table():
         con.execute(sql)
         # Select only status columns present in diff_result (avoid relying on order)
         res = con.execute("SELECT val, _row_status FROM diff_result").fetchall()
-        # expect [0,0]  (val matches, row present both sides)
-        assert res == [(0, 0)]
+        # expect (0, NULL): val matches, row present both sides
+        assert res == [(0, None)]
 
 
 def test_missing_column():
@@ -90,8 +90,8 @@ def test_missing_column():
         ]))
         con.execute(sql)
         res = con.execute("SELECT val, new_col, _row_status FROM diff_result").fetchall()
-        # new_col should be 2 (null in before but not after)
-        assert res == [(0, 2, 0)]
+        # new_col should be 2 (null in before but not after); _row_status is NULL
+        assert res == [(0, 2, None)]
 
 
 def test_different_values():
@@ -122,8 +122,8 @@ def test_different_values():
         ]))
         con.execute(sql)
         res = con.execute("SELECT val, _row_status FROM diff_result").fetchall()
-        # val should be 1 (different values)
-        assert res == [(1, 0)]
+        # val should be 1 (different values); _row_status is NULL
+        assert res == [(1, None)]
 
 
 def test_missing_row_before():
@@ -190,8 +190,8 @@ def test_multiple_key_columns():
         ]))
         con.execute(sql)
         res = con.execute("SELECT val, _row_status FROM diff_result").fetchall()
-        # val should be 0 (match), row_status should be 0
-        assert res == [(0, 0)]
+        # val should be 0 (match), _row_status is NULL
+        assert res == [(0, None)]
 
 
 def test_single_line_stack_prepend(tmp_path: Path):

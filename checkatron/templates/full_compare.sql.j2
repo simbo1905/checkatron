@@ -68,7 +68,7 @@ SELECT
     CASE
         WHEN b_{{ key_cols[0] }} IS NULL THEN 4
         WHEN a_{{ key_cols[0] }} IS NULL THEN 5
-        ELSE 0
+        ELSE NULL
     END AS _row_status,
 {% for k in key_cols -%}
     K_{{ k }},
