@@ -61,6 +61,11 @@ python -m checkatron.diffgen \
 
 See the `samples/` folder for example files and detailed usage instructions.
 
+**Run the tests:**
+```bash
+python -m pytest tests/ -v
+```
+
 ## 🎯 Complete Tutorial: Test in Snowflake
 
 Want to test Checkatron with real Snowflake tables? Follow this step-by-step tutorial:

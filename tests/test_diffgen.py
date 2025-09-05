@@ -50,7 +50,8 @@ def test_simple_same_table():
             "--after_table",  "after_table",
         ]))
         con.execute(sql)
-        res = con.execute("SELECT * FROM diff_result").fetchall()
+        # Select only status columns (exclude new X_<key> projection columns)
+        res = con.execute("SELECT k1, val, _row_status FROM diff_result").fetchall()
         # expect [0,0,0]  (val matches, row present both sides, row status 0)
         assert res == [(0, 0, 0)]
 

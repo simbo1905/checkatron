@@ -7,50 +7,51 @@
   4 = row missing in BEFORE
   5 = row missing in AFTER
 */
-
 CREATE OR REPLACE TABLE diff_result AS
 WITH
 before_filt AS (
     SELECT * FROM {{ before_table }}
-    {% if before_where %}WHERE {{ before_where }}{% endif %}
+    {%- if before_where %}
+    WHERE {{ before_where }}{% endif %}
 ),
 after_filt AS (
     SELECT * FROM {{ after_table }}
-    {% if after_where %}WHERE {{ after_where }}{% endif %}
+    {%- if after_where %}
+    WHERE {{ after_where }}{% endif %}
 ),
 /* all keys combinations that exist in either side */
 all_keys AS (
     SELECT
     {% for k in key_cols %}
-        {{ k }}{% if not loop.last %},{% endif %}
-    {% endfor %}
+        {{- k }}{% if not loop.last %},{%- endif %}
+    {%- endfor %}
     FROM before_filt
     UNION
     SELECT
     {% for k in key_cols %}
-        {{ k }}{% if not loop.last %},{% endif %}
-    {% endfor %}
+        {{- k }}{% if not loop.last %},{%- endif %}
+    {%- endfor %}
     FROM after_filt
 ),
 joined AS (
     SELECT
         {% for k in key_cols %}
-        k.{{ k }}{% if not loop.last %},{% endif %}
-        {% endfor %},
-        {% for col in all_cols %}
-        {% if col in before_cols %}
-        b.{{ col }} AS b_{{ col }}{% if not loop.last %},{% endif %}
-        {% else %}
-        NULL AS b_{{ col }}{% if not loop.last %},{% endif %}
-        {% endif %}
-        {% endfor %},
-        {% for col in all_cols %}
-        {% if col in after_cols %}
-        a.{{ col }} AS a_{{ col }}{% if not loop.last %},{% endif %}
-        {% else %}
-        NULL AS a_{{ col }}{% if not loop.last %},{% endif %}
-        {% endif %}
-        {% endfor %}
+        k.{{ k }}{%- if not loop.last %},{%- endif %}
+        {%- endfor %},
+        {%- for col in all_cols %}
+        {%- if col in before_cols %}
+        b.{{ col }} AS b_{{ col }}{%- if not loop.last %},{%- endif %}
+        {%- else %}
+        NULL AS b_{{ col }}{%- if not loop.last %},{%- endif %}
+        {%- endif %}
+        {%- endfor %},
+        {%- for col in all_cols %}
+        {%- if col in after_cols %}
+        a.{{ col }} AS a_{{ col }}{%- if not loop.last %},{%- endif %}
+        {%- else %}
+        NULL AS a_{{ col }}{%- if not loop.last %},{%- endif %}
+        {%- endif %}
+        {%- endfor %}
     FROM all_keys k
     LEFT JOIN before_filt b
       ON {% for k in key_cols -%}
@@ -64,7 +65,11 @@ joined AS (
          {%- endfor %}
 )
 SELECT
-{% for col in all_cols %}
+{% for k in key_cols -%}
+    a_{{ k }} AS X_{{ k }},
+{%- endfor %}
+
+{% for col in all_cols -%}
     CASE
         WHEN b_{{ col }} IS NULL AND a_{{ col }} IS NULL THEN 0
         WHEN b_{{ col }} IS NULL AND a_{{ col }} IS NOT NULL THEN 2
