@@ -3,12 +3,23 @@ name: CI
 on:
   push:
     branches: [ main ]
+    # Docs-only pushes do not need the full test matrix.
+    paths-ignore:
+      - 'docs/**'
+      - '*.md'
+      - '**/*.md'
   pull_request:
     branches: [ main ]
+
+# Cancel superseded runs of the same ref instead of paying for both.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     strategy:
       matrix:
         # Quote Python versions so YAML doesn't coerce 3.10 -> 3.1
